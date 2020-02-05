@@ -1,19 +1,20 @@
 package com.example;
 
-import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.fail;
-
 import dagger.Lazy;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import javax.inject.Provider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+
+import javax.inject.Provider;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public final class IntegrationTest {
@@ -534,6 +535,17 @@ public final class IntegrationTest {
   }
 
   @Test
+  public void builderDependencyBindsInstance() {
+    BuilderDependency component =
+        backend
+            .builder(BuilderDependency.Builder.class)
+            .other(new BuilderDependency.Other("hey"))
+            .build();
+
+    assertThat(component.other().string()).isEqualTo("hey");
+  }
+
+  @Test
   public void builderDependencyNullThrowsNpe() {
     BuilderDependency.Builder builder = backend.builder(BuilderDependency.Builder.class);
     try {
@@ -587,6 +599,14 @@ public final class IntegrationTest {
         backend.factory(FactoryDependency.Factory.class).create(new FactoryDependency.Other("hey"));
 
     assertThat(component.string()).isEqualTo("hey");
+  }
+
+  @Test
+  public void factoryDependencyBindsInstance() {
+    FactoryDependency component =
+        backend.factory(FactoryDependency.Factory.class).create(new FactoryDependency.Other("hey"));
+
+    assertThat(component.other().string()).isEqualTo("hey");
   }
 
   @Test
