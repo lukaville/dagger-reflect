@@ -5,6 +5,7 @@ import dagger.Component;
 @Component(dependencies = BuilderDependency.Other.class)
 public interface BuilderDependency {
   String string();
+  Other other();
 
   class Other {
     private final String string;
