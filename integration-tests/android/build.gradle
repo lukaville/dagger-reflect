@@ -45,6 +45,7 @@ android {
 dependencies {
   implementation deps.dagger.runtime
   implementation deps.dagger.androidRuntime
+  implementation deps.androidx.annotations
 
   reflectImplementation project(':reflect')
   reflectAnnotationProcessor project(':reflect-compiler')
