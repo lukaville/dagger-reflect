@@ -28,14 +28,14 @@ class KotlinMetadata {
         }
         KotlinClassHeader header =
             new KotlinClassHeader(
-                    annotation.k(),
-                    annotation.mv(),
-                    annotation.bv(),
-                    annotation.d1(),
-                    annotation.d2(),
-                    annotation.xs(),
-                    annotation.pn(),
-                    annotation.xi()
+                annotation.k(),
+                annotation.mv(),
+                annotation.bv(),
+                annotation.d1(),
+                annotation.d2(),
+                annotation.xs(),
+                annotation.pn(),
+                annotation.xi()
             );
         KotlinClassMetadata metadata = KotlinClassMetadata.read(header);
         if (metadata == null) {

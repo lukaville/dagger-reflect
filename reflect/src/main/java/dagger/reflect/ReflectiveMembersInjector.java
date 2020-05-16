@@ -28,9 +28,19 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
-import static dagger.reflect.Reflection.*;
+import static dagger.reflect.Reflection.findQualifier;
+import static dagger.reflect.Reflection.tryInvoke;
+import static dagger.reflect.Reflection.trySet;
 
 final class ReflectiveMembersInjector<T> implements MembersInjector<T> {
   static <T> MembersInjector<T> create(Class<T> cls, Scope scope) {
