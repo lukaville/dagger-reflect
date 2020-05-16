@@ -32,7 +32,10 @@ buildscript {
           ],
       ],
       'jetbrainsAnnotations': 'org.jetbrains:annotations:17.0.0',
-      'kotlinStdlib': "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}",
+      'kotlin': [
+          'metadata': 'org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.1.0',
+          'stdlib': "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
+      ],
       'guava': 'com.google.guava:guava:28.0-jre',
       'animalSnifferAnnotations': 'org.codehaus.mojo:animal-sniffer-annotations:1.18',
       'robolectric': 'org.robolectric:robolectric:4.3',

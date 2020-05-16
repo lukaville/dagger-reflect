@@ -9,6 +9,8 @@ dependencies {
   implementation deps.auto.value.annotations
   implementation deps.jetbrainsAnnotations
   implementation deps.animalSnifferAnnotations
+  implementation deps.kotlin.stdlib
+  implementation deps.kotlin.metadata
 
   compileOnly deps.guava
   compileOnly deps.dagger.androidRuntimeJar

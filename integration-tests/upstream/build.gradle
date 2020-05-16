@@ -23,6 +23,7 @@ test.filter {
   excludeTest 'dagger.functional.subcomponent.SubcomponentTest', null
   excludeTest 'dagger.functional.subcomponent.repeat.RepeatedModuleTest', null
   excludeTest 'dagger.functional.BasicTest', null
+  excludeTest 'dagger.functional.ComponentDependenciesTest', null
 
   // TODO reflect bug! Generics don't work well.
   excludeTest 'dagger.functional.GenericTest', 'complexGenerics'
@@ -59,7 +60,7 @@ test.filter {
 }
 
 dependencies {
-  testImplementation deps.kotlinStdlib
+  testImplementation deps.kotlin.stdlib
   testImplementation project(':reflect')
   testImplementation deps.junit
   testImplementation deps.truth
