@@ -23,6 +23,7 @@ test.filter {
   excludeTest 'dagger.functional.subcomponent.SubcomponentTest', null
   excludeTest 'dagger.functional.subcomponent.repeat.RepeatedModuleTest', null
   excludeTest 'dagger.functional.BasicTest', null
+  excludeTest 'dagger.functional.ComponentDependenciesTest', null
 
   // TODO reflect bug! Generics don't work well.
   excludeTest 'dagger.functional.GenericTest', 'complexGenerics'
@@ -59,7 +60,7 @@ test.filter {
 }
 
 dependencies {
-  testImplementation deps.kotlinStdlib
+  testImplementation deps.kotlin.stdlib
   testImplementation project(':reflect')
   testImplementation deps.junit
   testImplementation deps.truth
@@ -109,7 +110,8 @@ task copyDaggerUpstream(type: Copy) {
     exclude 'functional/NeedsFactory.java'
     exclude 'functional/ComponentSupertypeDependsOnGeneratedCodeInterface.java'
     exclude 'functional/ComponentSupertypeDependsOnGeneratedCode.java'
-    exclude 'functional//ComponentDependsOnGeneratedCode.java'
+    exclude 'functional/ComponentDependsOnGeneratedCode.java'
+    exclude 'functional/DependsOnGeneratedCodeTest.java'
 
     // This test reflects on the generated component implementation fields.
     exclude 'functional/staticprovides/StaticProvidesTest.java'
@@ -122,7 +124,7 @@ task copyDaggerUpstream(type: Copy) {
     exclude 'functional/MultibindingTest.java'
     exclude 'functional/NonComponentDependencyTest.java'
   }
-  into "$buildDir/dagger-upstream"
+  into "$buildDir/dagger-upstream/dagger/"
 }
 
 afterEvaluate {

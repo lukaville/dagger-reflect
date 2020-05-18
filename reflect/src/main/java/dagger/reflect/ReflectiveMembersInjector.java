@@ -15,33 +15,72 @@
  */
 package dagger.reflect;
 
-import static dagger.reflect.Reflection.findQualifier;
-import static dagger.reflect.Reflection.tryInvoke;
-import static dagger.reflect.Reflection.trySet;
-
 import dagger.MembersInjector;
 import dagger.reflect.Binding.LinkedBinding;
+import kotlinx.metadata.KmClass;
+import kotlinx.metadata.KmProperty;
+import kotlinx.metadata.jvm.JvmExtensionsKt;
+import kotlinx.metadata.jvm.JvmMemberSignature;
+
+import javax.inject.Inject;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.inject.Inject;
+import java.util.Optional;
+import java.util.Set;
+
+import static dagger.reflect.Reflection.findQualifier;
+import static dagger.reflect.Reflection.tryInvoke;
+import static dagger.reflect.Reflection.trySet;
 
 final class ReflectiveMembersInjector<T> implements MembersInjector<T> {
   static <T> MembersInjector<T> create(Class<T> cls, Scope scope) {
     Deque<ClassInjector<T>> classInjectors = new ArrayDeque<>();
     Class<?> target = cls;
     while (target != Object.class && target != null) {
+      Optional<KmClass> clsMetadata = KotlinMetadata.getForClass(target);
+      Map<Field, Set<Annotation>> injectableKotlinProperties = new HashMap<>();
+      if (clsMetadata.isPresent()) {
+        for (KmProperty kmProperty : clsMetadata.get().getProperties()) {
+          try {
+            JvmMemberSignature syntheticMethod = JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty);
+            if (syntheticMethod != null) {
+              Method targetMethod = target.getMethod(syntheticMethod.getName());
+              injectableKotlinProperties.put(
+                target.getField(kmProperty.getName()),
+                new HashSet<>(Arrays.asList(targetMethod.getAnnotations()))
+              );
+            }
+          } catch (NoSuchMethodException | NoSuchFieldException ignored) {
+          }
+        }
+      }
+
       Map<Field, LinkedBinding<?>> fieldBindings = new LinkedHashMap<>();
       for (Field field : target.getDeclaredFields()) {
-        if (field.getAnnotation(Inject.class) == null) {
+        Set<Annotation> fieldAnnotations = injectableKotlinProperties.getOrDefault(field, new HashSet<>());
+        fieldAnnotations.addAll(Arrays.asList(field.getAnnotations()));
+        boolean isInjected = false;
+        for (Annotation annotation : fieldAnnotations) {
+          if (annotation.annotationType() == Inject.class) {
+            isInjected = true;
+            break;
+          }
+        }
+
+        if (!isInjected) {
           continue;
         }
+
         if (Modifier.isPrivate(field.getModifiers())) {
           throw new IllegalArgumentException(
               "Dagger does not support injection into private fields: "
@@ -57,7 +96,7 @@ final class ReflectiveMembersInjector<T> implements MembersInjector<T> {
                   + field.getName());
         }
 
-        Key key = Key.of(findQualifier(field.getDeclaredAnnotations()), field.getGenericType());
+        Key key = Key.of(findQualifier(fieldAnnotations), field.getGenericType());
         LinkedBinding<?> binding = scope.getBinding(key);
 
         fieldBindings.put(field, binding);
