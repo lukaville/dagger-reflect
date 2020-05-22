@@ -16,25 +16,35 @@ import kotlinx.metadata.KmClass;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static dagger.reflect.Reflection.*;
+import static dagger.reflect.Reflection.boxIfNecessary;
+import static dagger.reflect.Reflection.findAnnotation;
+import static dagger.reflect.Reflection.findMapKey;
+import static dagger.reflect.Reflection.findQualifier;
+import static dagger.reflect.Reflection.findScope;
+import static dagger.reflect.Reflection.findScopes;
+import static dagger.reflect.Reflection.maybeInstantiate;
+import static dagger.reflect.Reflection.requireAnnotation;
 
 final class ReflectiveModuleParser {
   static void parse(Class<?> moduleClass, @Nullable Object instance, Scope.Builder scopeBuilder) {
     Set<Class<?>> classes = Reflection.getDistinctTypeHierarchy(moduleClass);
     Set<Class<?>> companionObjects = new HashSet<>();
     for (Class<?> target : classes) {
-      Optional<KmClass> metadata = KotlinMetadata.getForClass(target);
-      if (!metadata.isPresent()) {
+      KmClass kmClass = KotlinMetadata.getForClass(target);
+      if (kmClass == null) {
         continue;
       }
 
-      KmClass kmClass = metadata.get();
       if (kmClass.getCompanionObject() != null) {
         Class<?>[] innerClasses = target.getClasses();
         for (Class<?> inner : innerClasses) {

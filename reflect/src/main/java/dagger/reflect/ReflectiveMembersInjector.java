@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static dagger.reflect.Reflection.findQualifier;
@@ -47,10 +46,10 @@ final class ReflectiveMembersInjector<T> implements MembersInjector<T> {
     Deque<ClassInjector<T>> classInjectors = new ArrayDeque<>();
     Class<?> target = cls;
     while (target != Object.class && target != null) {
-      Optional<KmClass> clsMetadata = KotlinMetadata.getForClass(target);
+      KmClass clsMetadata = KotlinMetadata.getForClass(target);
       Map<Field, Set<Annotation>> injectableKotlinProperties = new HashMap<>();
-      if (clsMetadata.isPresent()) {
-        for (KmProperty kmProperty : clsMetadata.get().getProperties()) {
+      if (clsMetadata != null) {
+        for (KmProperty kmProperty : clsMetadata.getProperties()) {
           try {
             JvmMemberSignature syntheticMethod = JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty);
             if (syntheticMethod != null) {
