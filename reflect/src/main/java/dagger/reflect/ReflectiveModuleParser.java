@@ -1,14 +1,5 @@
 package dagger.reflect;
 
-import static dagger.reflect.Reflection.boxIfNecessary;
-import static dagger.reflect.Reflection.findAnnotation;
-import static dagger.reflect.Reflection.findMapKey;
-import static dagger.reflect.Reflection.findQualifier;
-import static dagger.reflect.Reflection.findScope;
-import static dagger.reflect.Reflection.findScopes;
-import static dagger.reflect.Reflection.maybeInstantiate;
-import static dagger.reflect.Reflection.requireAnnotation;
-
 import dagger.Binds;
 import dagger.BindsOptionalOf;
 import dagger.MapKey;
@@ -20,24 +11,74 @@ import dagger.multibindings.IntoMap;
 import dagger.multibindings.IntoSet;
 import dagger.multibindings.Multibinds;
 import dagger.reflect.TypeUtil.ParameterizedTypeImpl;
+import kotlin.jvm.JvmStatic;
+import kotlinx.metadata.KmClass;
+import org.jetbrains.annotations.Nullable;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.jetbrains.annotations.Nullable;
+
+import static dagger.reflect.Reflection.boxIfNecessary;
+import static dagger.reflect.Reflection.findAnnotation;
+import static dagger.reflect.Reflection.findMapKey;
+import static dagger.reflect.Reflection.findQualifier;
+import static dagger.reflect.Reflection.findScope;
+import static dagger.reflect.Reflection.findScopes;
+import static dagger.reflect.Reflection.maybeInstantiate;
+import static dagger.reflect.Reflection.requireAnnotation;
 
 final class ReflectiveModuleParser {
   static void parse(Class<?> moduleClass, @Nullable Object instance, Scope.Builder scopeBuilder) {
-    for (Class<?> target : Reflection.getDistinctTypeHierarchy(moduleClass)) {
+    Set<Class<?>> classes = Reflection.getDistinctTypeHierarchy(moduleClass);
+    Set<Class<?>> companionObjects = new HashSet<>();
+    for (Class<?> target : classes) {
+      KmClass kmClass = KotlinMetadata.getForClass(target);
+      if (kmClass == null) {
+        continue;
+      }
+
+      if (kmClass.getCompanionObject() != null) {
+        Class<?>[] innerClasses = target.getClasses();
+        for (Class<?> inner : innerClasses) {
+          if (inner.getSimpleName().equals(kmClass.getCompanionObject())) {
+            companionObjects.add(inner);
+            break;
+          }
+        }
+      }
+    }
+
+    classes.addAll(companionObjects);
+
+    for (Class<?> target : classes) {
       for (Method method : target.getDeclaredMethods()) {
         Type returnType = method.getGenericReturnType();
         Annotation[] annotations = method.getAnnotations();
         Annotation qualifier = findQualifier(annotations);
+
+        boolean targetIsCompanion = companionObjects.contains(target);
+        Object bindingInstance = null;
+        if (targetIsCompanion) {
+          if (method.isAnnotationPresent(JvmStatic.class)) {
+            // Kotlin duplicates those to class
+            continue;
+          }
+
+          try {
+            bindingInstance = Reflection.requireEnclosingClass(target).getField(target.getSimpleName()).get(instance);
+          } catch (IllegalAccessException | NoSuchFieldException ignored) { }
+        } else {
+          bindingInstance = instance;
+        }
+
 
         if (Modifier.isAbstract(method.getModifiers())) {
           if (method.getAnnotation(Binds.class) != null) {
@@ -90,17 +131,17 @@ final class ReflectiveModuleParser {
         } else {
           if (method.getAnnotation(Provides.class) != null) {
             ensureNotPrivate(method);
-            if (!Modifier.isStatic(method.getModifiers()) && instance == null) {
+            if (!Modifier.isStatic(method.getModifiers()) && bindingInstance == null) {
               ensureNotAbstract(moduleClass);
               // Try to just-in-time create an instance of the module using a default constructor.
-              instance = maybeInstantiate(moduleClass);
-              if (instance == null) {
+              bindingInstance = maybeInstantiate(moduleClass);
+              if (bindingInstance == null) {
                 throw new IllegalStateException(moduleClass.getCanonicalName() + " must be set");
               }
             }
 
             Key key = Key.of(qualifier, returnType);
-            Binding binding = new UnlinkedProvidesBinding(instance, method);
+            Binding binding = new UnlinkedProvidesBinding(bindingInstance, method);
             addBinding(scopeBuilder, key, binding, annotations);
           }
         }

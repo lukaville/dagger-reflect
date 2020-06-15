@@ -15,20 +15,21 @@
  */
 package dagger.reflect;
 
-import static dagger.reflect.Reflection.findQualifier;
-import static dagger.reflect.Reflection.newProxy;
-import static dagger.reflect.Reflection.requireAnnotation;
-import static dagger.reflect.Reflection.requireEnclosingClass;
-
 import dagger.BindsInstance;
 import dagger.Component;
 import dagger.Module;
 import dagger.Subcomponent;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
+
+import static dagger.reflect.Reflection.findQualifier;
+import static dagger.reflect.Reflection.newProxy;
+import static dagger.reflect.Reflection.requireAnnotation;
+import static dagger.reflect.Reflection.requireEnclosingClass;
 
 final class ComponentBuilderInvocationHandler implements InvocationHandler {
   static <B> B forComponentBuilder(Class<B> builderClass) {
@@ -98,8 +99,7 @@ final class ComponentBuilderInvocationHandler implements InvocationHandler {
       return ComponentInvocationHandler.create(componentClass, componentScopeBuilder.get());
     }
 
-    // TODO these are allowed to be void or a supertype
-    if (returnType.equals(builderClass)) {
+    if (returnType.equals(builderClass) || returnType.equals(Void.TYPE) || returnType.isAssignableFrom(builderClass)) {
       if (parameterTypes.length != 1) {
         throw new IllegalStateException(); // TODO must be single arg
       }

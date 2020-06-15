@@ -17,6 +17,10 @@ package dagger.reflect;
 
 import dagger.MapKey;
 import dagger.Reusable;
+import org.jetbrains.annotations.Nullable;
+
+import javax.inject.Qualifier;
+import javax.inject.Scope;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -25,12 +29,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import javax.inject.Qualifier;
-import javax.inject.Scope;
-import org.jetbrains.annotations.Nullable;
 
 final class Reflection {
   static @Nullable Class<?> findEnclosedAnnotatedClass(
@@ -44,6 +47,10 @@ final class Reflection {
   }
 
   static @Nullable Annotation findQualifier(Annotation[] annotations) {
+    return findQualifier(new HashSet<>(Arrays.asList(annotations)));
+  }
+
+  static @Nullable Annotation findQualifier(Set<Annotation> annotations) {
     Annotation qualifier = null;
     for (Annotation annotation : annotations) {
       if (annotation.annotationType().getAnnotation(Qualifier.class) != null) {

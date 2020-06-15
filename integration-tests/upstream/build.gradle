@@ -1,27 +1,9 @@
 apply plugin: 'java-library'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'org.jetbrains.kotlin.kapt'
 
 sourceSets.test.java {
-  srcDir file('dagger/javatests')
-  include 'dagger/functional/**'
-
-  exclude 'dagger/functional/producers/**'
-  exclude 'dagger/functional/tck/**'
-  exclude 'dagger/functional/spi/**'
-
-  // These tests contains a reference to a generated types directly.
-  exclude 'dagger/functional/gwt/GwtIncompatiblesTest.java'
-  exclude 'dagger/functional/membersinject/MembersInjectTest.java'
-
-  // This test reflects on the generated component implementation fields.
-  exclude 'dagger/functional/staticprovides/StaticProvidesTest.java'
-
-  // TODO reflect-compiler bug! Not generating builder method.
-  exclude 'dagger/functional/builder/BuilderTest.java'
-  exclude 'dagger/functional/cycle/DoubleCheckCycleTest.java'
-  exclude 'dagger/functional/membersinject/MembersInjectionOrderingTest.java'
-  exclude 'dagger/functional/nullables/NullabilityTest.java'
-  exclude 'dagger/functional/MultibindingTest.java'
-  exclude 'dagger/functional/NonComponentDependencyTest.java'
+  srcDir file("$buildDir/dagger-upstream")
 }
 
 test.filter {
@@ -41,6 +23,7 @@ test.filter {
   excludeTest 'dagger.functional.subcomponent.SubcomponentTest', null
   excludeTest 'dagger.functional.subcomponent.repeat.RepeatedModuleTest', null
   excludeTest 'dagger.functional.BasicTest', null
+  excludeTest 'dagger.functional.ComponentDependenciesTest', null
 
   // TODO reflect bug! Generics don't work well.
   excludeTest 'dagger.functional.GenericTest', 'complexGenerics'
@@ -77,14 +60,15 @@ test.filter {
 }
 
 dependencies {
+  testImplementation deps.kotlin.stdlib
   testImplementation project(':reflect')
   testImplementation deps.junit
   testImplementation deps.truth
   testImplementation deps.auto.value.annotations
   testImplementation deps.auto.factory // TODO https://github.com/google/auto/issues/631
-  testAnnotationProcessor project(':reflect-compiler')
-  testAnnotationProcessor deps.auto.value.compiler
-  testAnnotationProcessor deps.auto.factory
+  kaptTest project(':reflect-compiler')
+  kaptTest deps.auto.value.compiler
+  kaptTest deps.auto.factory
 }
 
 def ensureDaggerSubmodule = tasks.create('ensureDaggerSubmodule') {
@@ -105,7 +89,49 @@ def ensureDaggerSubmodule = tasks.create('ensureDaggerSubmodule') {
     }
   }
 }
-compileTestJava.dependsOn(ensureDaggerSubmodule)
+
+task deleteUpstream(type: Delete) {
+  delete("$buildDir/dagger-upstream")
+}
+
+task copyDaggerUpstream(type: Copy) {
+  from("dagger/javatests/dagger") {
+    include 'functional/**'
+
+    exclude 'functional/producers/**'
+    exclude 'functional/tck/**'
+    exclude 'functional/spi/**'
+    exclude 'functional/guava/**'
+
+    // These tests contains a reference to a generated types directly.
+    exclude 'functional/gwt/GwtIncompatiblesTest.java'
+    exclude 'functional/membersinject/MembersInjectTest.java'
+    exclude 'functional/NeedsProviderOfFactory.java'
+    exclude 'functional/NeedsFactory.java'
+    exclude 'functional/ComponentSupertypeDependsOnGeneratedCodeInterface.java'
+    exclude 'functional/ComponentSupertypeDependsOnGeneratedCode.java'
+    exclude 'functional/ComponentDependsOnGeneratedCode.java'
+    exclude 'functional/DependsOnGeneratedCodeTest.java'
+
+    // This test reflects on the generated component implementation fields.
+    exclude 'functional/staticprovides/StaticProvidesTest.java'
+
+    // TODO reflect-compiler bug! Not generating builder method.
+    exclude 'functional/builder/BuilderTest.java'
+    exclude 'functional/cycle/DoubleCheckCycleTest.java'
+    exclude 'functional/membersinject/MembersInjectionOrderingTest.java'
+    exclude 'functional/nullables/NullabilityTest.java'
+    exclude 'functional/MultibindingTest.java'
+    exclude 'functional/NonComponentDependencyTest.java'
+  }
+  into "$buildDir/dagger-upstream/dagger/"
+}
+
+afterEvaluate {
+  copyDaggerUpstream.dependsOn(deleteUpstream)
+  kaptTestKotlin.dependsOn(copyDaggerUpstream)
+  kaptTestKotlin.dependsOn(ensureDaggerSubmodule)
+}
 
 tasks.withType(JavaCompile).configureEach {
   options.encoding = 'UTF-8'
